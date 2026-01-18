@@ -149,17 +149,22 @@ export NVM_DIR="$HOME/.nvm"
 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
-# NVM and Python Venv Auto switch and git submodule update
+# NVM and Python Venv Auto switch
 
 cd() {
   builtin cd "$@"
   if [[ -f .nvmrc ]]; then
     nvm use > /dev/null
   fi
-  if [[ -d .venv  ]] then 
+  if [[ -d .venv ]] then 
     source .venv/bin/activate
   fi
+  if [[ -d .git ]] then 
+    git fetch
+    git pull
+  fi
   if [[ -f .gitmodules ]]; then
+     git fetch upstream
      git submodule update --init
   fi
 }
