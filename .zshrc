@@ -157,20 +157,6 @@ proj() {
   [[ -n "$dir" ]] && cd "$dir"
 }
 
-# Create branch with type prefix
-gbr() {
-  if [[ $# -lt 2 ]]; then
-    echo "Usage: gbr <type> <description>"
-    echo "Types: feat, fix, chore, refactor, docs, test"
-    return 1
-  fi
-  local type="$1"
-  shift
-  local desc="${(j:-:)@:l}"  # Join args with hyphens, lowercase
-  git checkout -b "${type}/${desc}"
-}
-# Usage: gbr feat user avatar upload
-# Creates: feat/user-avatar-upload
 
 # Find and optionally kill process on a port
 port() {
