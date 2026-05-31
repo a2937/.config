@@ -149,17 +149,108 @@ export NVM_DIR="$HOME/.nvm"
 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
-# NVM and Python Venv Auto switch and git submodule update
+
+# Jump to project by fuzzy name
+proj() {
+  local dir
+  dir=$(find ~/projects -maxdepth 2 -type d -name ".git" 2>/dev/null |     sed 's|/.git||' | fzf --height 40% --reverse)
+  [[ -n "$dir" ]] && cd "$dir"
+}
+
+# Create branch with type prefix
+gbr() {
+  if [[ $# -lt 2 ]]; then
+    echo "Usage: gbr <type> <description>"
+    echo "Types: feat, fix, chore, refactor, docs, test"
+    return 1
+  fi
+  local type="$1"
+  shift
+  local desc="${(j:-:)@:l}"  # Join args with hyphens, lowercase
+  git checkout -b "${type}/${desc}"
+}
+# Usage: gbr feat user avatar upload
+# Creates: feat/user-avatar-upload
+
+# Find and optionally kill process on a port
+port() {
+  if [[ $# -eq 0 ]]; then
+    echo "Usage: port <number> [kill]"
+    return 1
+  fi
+  local pid
+  pid=$(lsof -ti ":$1" 2>/dev/null)
+  if [[ -z "$pid" ]]; then
+    echo "No process on port $1"
+    return 0
+  fi
+  echo "Port $1: PID $pid ($(ps -p $pid -o comm= 2>/dev/null))"
+  if [[ "$2" == "kill" ]]; then
+    kill -9 "$pid" && echo "Killed PID $pid"
+  fi
+}
+# Usage: port 3000        → shows process
+#        port 3000 kill   → kills it
+
+
+# Unified extract command
+extract() {
+  if [[ ! -f "$1" ]]; then
+    echo "File not found: $1"
+    return 1
+  fi
+  case "$1" in
+    *.tar.bz2) tar xjf "$1" ;;
+    *.tar.gz)  tar xzf "$1" ;;
+    *.tar.xz)  tar xJf "$1" ;;
+    *.bz2)     bunzip2 "$1" ;;
+    *.gz)      gunzip "$1" ;;
+    *.tar)     tar xf "$1" ;;
+    *.tbz2)    tar xjf "$1" ;;
+    *.tgz)     tar xzf "$1" ;;
+    *.zip)     unzip "$1" ;;
+    *.7z)      7z x "$1" ;;
+    *.rar)     unrar x "$1" ;;
+    *) echo "Unknown format: $1"; return 1 ;;
+  esac
+}
+
+# Copies a folder and initializes a new Git repository
+gitCopy(){
+  emulate -L zsh              # Consistent Zsh behavior
+  local usage="Usage: gitCopy <sourceFolder> <destFolder>"
+  if [ -d "$1" ]; then
+    echo "$1 does exist."
+    return 1
+  fi
+
+  cp -R $1 $2 
+  cd $2
+  echo "Successfully created directory $2" 
+  git init -y
+  echo "Initialized new Git repository"
+  touch .gitignore 
+  echo "Created empty gitignore" 
+}
+
+# NVM and Python Venv Auto switch
 
 cd() {
   builtin cd "$@"
   if [[ -f .nvmrc ]]; then
     nvm use > /dev/null
   fi
-  if [[ -d .venv  ]] then 
+  if [[ -d .venv ]] then 
     source .venv/bin/activate
   fi
+  if [[ -d .git ]] then 
+    echo "Updating repo..." 
+    git fetch
+    git pull
+  fi
   if [[ -f .gitmodules ]]; then
+     echo "Updating submodules..." 
+     git fetch upstream
      git submodule update --init
   fi
 }
